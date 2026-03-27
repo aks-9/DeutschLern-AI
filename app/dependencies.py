@@ -14,7 +14,7 @@ async def get_current_user(
     access_token: Optional[str] = Cookie(default=None),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    """Return the currently logged-in User, or raise 401 if not authenticated."""
+    """Return the logged-in User, or raise 401 if not authenticated."""
     not_authenticated = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Not authenticated",
