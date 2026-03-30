@@ -2,8 +2,9 @@
 
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, Form, HTTPException, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
 from jose import jwt
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +16,7 @@ from app.schemas import UserCreate
 from config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+templates = Jinja2Templates(directory="app/templates")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -22,11 +24,8 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def hash_password(plain: str) -> str:
     """Hash a plain-text password using bcrypt.
 
-    Args:
-        plain: The plain-text password from the registration form.
-
-    Returns:
-        A bcrypt-hashed password string safe to store in the DB.
+    :param plain: The plain-text password from the registration form.
+    :return: A bcrypt-hashed password string safe to store in the DB.
     """
     return pwd_context.hash(plain)
 
@@ -34,11 +33,8 @@ def hash_password(plain: str) -> str:
 def create_access_token(user_id: int) -> str:
     """Create a signed JWT access token for the given user.
 
-    Args:
-        user_id: The primary key of the authenticated user.
-
-    Returns:
-        A signed JWT string to be stored in an httponly cookie.
+    :param user_id: The primary key of the authenticated user.
+    :return: A signed JWT string to be stored in an httponly cookie.
     """
     expire = datetime.utcnow() + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
@@ -59,15 +55,10 @@ async def register(
     Checks for duplicate email, hashes the password, saves the user
     to the database, then redirects to the login page.
 
-    Args:
-        user_in: Validated registration data from the request body.
-        db: Async database session injected by FastAPI.
-
-    Raises:
-        HTTPException: 400 if the email is already registered.
-
-    Returns:
-        RedirectResponse to the login page on success.
+    :param user_in: Validated registration data from the request body.
+    :param db: Async database session injected by FastAPI.
+    :raises HTTPException: 400 if the email is already registered.
+    :return: RedirectResponse to the login page on success.
     """
     # Check for duplicate email
     result = await db.execute(
@@ -108,16 +99,11 @@ async def login(
     JWT, and stores it in an httponly cookie before redirecting to the
     dashboard.
 
-    Args:
-        email: Submitted login email from the HTML form.
-        password: Submitted plain-text password from the HTML form.
-        db: Async database session injected by FastAPI.
-
-    Raises:
-        HTTPException: 401 if email not found or password is wrong.
-
-    Returns:
-        RedirectResponse to /dashboard with access_token cookie set.
+    :param email: Submitted login email from the HTML form.
+    :param password: Submitted plain-text password from the HTML form.
+    :param db: Async database session injected by FastAPI.
+    :raises HTTPException: 401 if email not found or password is wrong.
+    :return: RedirectResponse to /dashboard with access_token cookie set.
     """
     # Look up user by email
     result = await db.execute(select(User).where(User.email == email))
@@ -142,4 +128,39 @@ async def login(
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # minutes → seconds
         samesite="lax",  # blocks cross-site form submissions (CSRF protection)
     )
+    return response
+
+@router.get("/register" , include_in_schema=False) #hides this route from the Swagger docs.
+async def register_form(request: Request):
+    """
+    Serve the registration HTML form.
+    :param request: The incoming FastAPI request (needed by Jinja2Templates).
+    :return: TemplateResponse rendering auth/register.html
+    """
+    return templates.TemplateResponse(
+        "auth/register.html",
+        {"request": request}
+    )
+
+@router.get("/login", include_in_schema=False)
+async def login_form(request: Request):
+    """
+    Serve the login HTML form
+    :param request: The incoming FastAPI request (needed by Jinja2Templates).
+    :return: TemplateResponse redering auth/login.html
+    """
+    return templates.TemplateResponse(
+        "auth/login.html", {"request": request}
+    )
+
+router.get("/logout", include_in_schema=False)
+async def logout():
+    """
+    Log the user out by deleting the JWT cookie.
+    :return: RedirectResponse to /auth/login with the access_token cookie deleted.
+    """
+    response = RedirectResponse(
+        url = "/auth/login", status_code=status.HTTP_302_FOUND
+    )
+    response.delete_cookie("access_token")
     return response

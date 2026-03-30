@@ -44,8 +44,7 @@ def run_migrations_offline() -> None:
 def do_run_migrations(connection):
     """Run migrations using an existing connection.
 
-    Args:
-        connection: An active SQLAlchemy database connection.
+    :param connection: An active SQLAlchemy database connection.
     """
     context.configure(
         connection=connection,
