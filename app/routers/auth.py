@@ -47,22 +47,26 @@ def create_access_token(user_id: int) -> str:
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(
-    user_in: UserCreate,
+    username: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
     db: AsyncSession = Depends(get_db),
 ):
-    """Register a new user.
+    """Register a new user  from the HTML form.
 
     Checks for duplicate email, hashes the password, saves the user
     to the database, then redirects to the login page.
 
-    :param user_in: Validated registration data from the request body.
+    :param username: Desired display name from the registration form.
+    :param email: Email address from the registration form.
+    :param password: Plain-text password from the registration form.
     :param db: Async database session injected by FastAPI.
     :raises HTTPException: 400 if the email is already registered.
     :return: RedirectResponse to the login page on success.
     """
     # Check for duplicate email
     result = await db.execute(
-        select(User).where(User.email == user_in.email)
+        select(User).where(User.email == email)
     )
     existing_user = result.scalars().first()
 
@@ -74,9 +78,9 @@ async def register(
 
     # Hash password and create user
     new_user = User(
-        email=user_in.email,
-        username=user_in.username,
-        password_hash=hash_password(user_in.password),
+        email= email,
+        username= username,
+        password_hash=hash_password(password),
     )
     db.add(new_user)
     await db.commit()
