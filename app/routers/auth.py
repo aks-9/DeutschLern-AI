@@ -157,7 +157,7 @@ async def login_form(request: Request):
         "auth/login.html", {"request": request}
     )
 
-router.get("/logout", include_in_schema=False)
+@router.get("/logout", include_in_schema=False)
 async def logout():
     """
     Log the user out by deleting the JWT cookie.
