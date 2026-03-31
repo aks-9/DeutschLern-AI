@@ -141,10 +141,7 @@ async def register_form(request: Request):
     :param request: The incoming FastAPI request (needed by Jinja2Templates).
     :return: TemplateResponse rendering auth/register.html
     """
-    return templates.TemplateResponse(
-        "auth/register.html",
-        {"request": request}
-    )
+    return templates.TemplateResponse(request, "auth/register.html")
 
 @router.get("/login", include_in_schema=False)
 async def login_form(request: Request):
@@ -153,9 +150,7 @@ async def login_form(request: Request):
     :param request: The incoming FastAPI request (needed by Jinja2Templates).
     :return: TemplateResponse redering auth/login.html
     """
-    return templates.TemplateResponse(
-        "auth/login.html", {"request": request}
-    )
+    return templates.TemplateResponse(request, "auth/login.html")
 
 @router.get("/logout", include_in_schema=False)
 async def logout():

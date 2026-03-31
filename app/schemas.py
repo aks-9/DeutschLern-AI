@@ -1,6 +1,6 @@
 """Pydantic schemas for request and response validation."""
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class UserCreate(BaseModel):
@@ -19,7 +19,4 @@ class UserRead(BaseModel):
     username: str
     level: str
 
-    class Config:
-        """Enable ORM mode so SQLAlchemy models can be serialised."""
-
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

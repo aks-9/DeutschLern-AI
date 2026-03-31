@@ -34,6 +34,6 @@ async def dashboard(request: Request, current_user: User = Depends(get_current_u
     :return: TemplateResponse rendering dashboard.html with basic user data
     """
     return templates.TemplateResponse(
-        "dashboard.html", {"request": request, "user": current_user}
+        request, "dashboard.html", {"user": current_user}
     )
 
