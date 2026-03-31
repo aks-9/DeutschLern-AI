@@ -2,9 +2,13 @@ import asyncio
 from app.database import AsyncSessionLocal
 from app.models import GrammarTopic
 from sqlalchemy import select
-async def seed():
-    """Seed 6 AI grammar topics into the database"""
-    async with AsyncSessionLocal() as session:
+
+
+async def seed(session_factory=None):
+    """Seed 6 A1 grammar topics into the database."""
+    if session_factory is None:
+        session_factory = AsyncSessionLocal
+    async with session_factory() as session:
         result = await session.execute(select(GrammarTopic))
         if result.scalars().first():
             print("Topics already seeded. Skipping.")
