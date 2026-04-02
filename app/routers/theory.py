@@ -1,3 +1,5 @@
+"""Theory routes: list all grammar topics and view a single topic."""
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,9 +16,9 @@ templates = Jinja2Templates(directory="app/templates")
 
 @router.get("", include_in_schema=False)
 async def theory_list(
-        request: Request,
-        current_user: User = Depends(get_current_user),
-        db: AsyncSession = Depends(get_db),
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """Render a list of all grammar topics ordered by level and index.
 

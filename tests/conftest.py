@@ -37,6 +37,11 @@ async def clean_users():
     async with test_engine.begin() as conn:
         await conn.execute(text("DELETE FROM users"))
 
+@pytest_asyncio.fixture(autouse=True)
+async def clean_topics():
+    """Delete all rows from the grammar_topics table before each test."""
+    async with test_engine.begin() as conn:
+        await conn.execute(text("DELETE FROM grammar_topics"))
 
 @pytest_asyncio.fixture()
 async def client():
