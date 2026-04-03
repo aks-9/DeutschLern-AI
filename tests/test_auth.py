@@ -1,6 +1,5 @@
 """Tests for authentication routes: register, login, logout, dashboard."""
 
-import pytest
 
 REGISTER_URL = "/auth/register"
 LOGIN_URL = "/auth/login"
@@ -14,7 +13,7 @@ VALID_USER = {
 }
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
+# -- Helpers ------------------------------------------------------------------
 
 async def register(client, data=None):
     """Register a user and return the response."""
@@ -32,9 +31,9 @@ async def register_and_login(client):
     return await login(client)
 
 
-# ── Registration ───────────────────────────────────────────────────────────────
+# -- Registration -------------------------------------------------------------
 
-@pytest.mark.asyncio
+
 async def test_register_redirects_to_login(client):
     """Successful registration should redirect to the login page."""
     response = await register(client)
@@ -42,7 +41,7 @@ async def test_register_redirects_to_login(client):
     assert response.headers["location"] == "/auth/login"
 
 
-@pytest.mark.asyncio
+
 async def test_register_duplicate_email_returns_400(client):
     """Registering with an already-used email should return 400."""
     await register(client)
@@ -50,9 +49,9 @@ async def test_register_duplicate_email_returns_400(client):
     assert response.status_code == 400
 
 
-# ── Login ──────────────────────────────────────────────────────────────────────
+# -- Login --------------------------------------------------------------------
 
-@pytest.mark.asyncio
+
 async def test_login_success_redirects_to_dashboard(client):
     """Valid credentials should redirect to /dashboard and set a cookie."""
     await register(client)
@@ -62,7 +61,7 @@ async def test_login_success_redirects_to_dashboard(client):
     assert "access_token" in response.cookies
 
 
-@pytest.mark.asyncio
+
 async def test_login_wrong_password_returns_401(client):
     """Wrong password should return 401."""
     await register(client)
@@ -70,23 +69,23 @@ async def test_login_wrong_password_returns_401(client):
     assert response.status_code == 401
 
 
-@pytest.mark.asyncio
+
 async def test_login_unknown_email_returns_401(client):
     """Unregistered email should return 401."""
     response = await login(client, email="nobody@example.com")
     assert response.status_code == 401
 
 
-# ── Dashboard ──────────────────────────────────────────────────────────────────
+# -- Dashboard ----------------------------------------------------------------
 
-@pytest.mark.asyncio
+
 async def test_dashboard_requires_authentication(client):
     """Visiting /dashboard without a cookie should return 401."""
     response = await client.get(DASHBOARD_URL)
     assert response.status_code == 401
 
 
-@pytest.mark.asyncio
+
 async def test_dashboard_accessible_when_logged_in(client):
     """Visiting /dashboard with a valid cookie should return 200."""
     await register_and_login(client)
@@ -95,9 +94,9 @@ async def test_dashboard_accessible_when_logged_in(client):
     assert "testuser" in response.text
 
 
-# ── Logout ─────────────────────────────────────────────────────────────────────
+# -- Logout -------------------------------------------------------------------
 
-@pytest.mark.asyncio
+
 async def test_logout_clears_cookie_and_redirects(client):
     """Logout should delete the access_token cookie and redirect to login."""
     await register_and_login(client)
@@ -108,7 +107,7 @@ async def test_logout_clears_cookie_and_redirects(client):
     assert response.cookies.get("access_token", "") == ""
 
 
-@pytest.mark.asyncio
+
 async def test_dashboard_inaccessible_after_logout(client):
     """After logout, /dashboard should return 401."""
     await register_and_login(client)

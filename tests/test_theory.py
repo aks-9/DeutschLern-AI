@@ -1,6 +1,5 @@
 """Tests for theory routes: GET /theory and GET /theory/{topic_id}."""
 
-import pytest
 import pytest_asyncio
 
 from app.models import GrammarTopic
@@ -17,7 +16,7 @@ VALID_USER = {
 }
 
 
-# ── Fixtures ────────────────────────────────────────────────────────────────────
+# -- Fixtures -----------------------------------------------------------------
 
 @pytest_asyncio.fixture()
 async def seeded_topics():
@@ -50,7 +49,7 @@ async def seeded_topics():
     return topics
 
 
-# ── Helpers ─────────────────────────────────────────────────────────────────────
+# -- Helpers ------------------------------------------------------------------
 
 async def register_and_login(client):
     """Register then log in; cookie is stored on the client."""
@@ -64,16 +63,16 @@ async def register_and_login(client):
     )
 
 
-# ── List route ──────────────────────────────────────────────────────────────────
+# -- List route ---------------------------------------------------------------
 
-@pytest.mark.asyncio
+
 async def test_theory_list_requires_auth(client):
     """GET /theory without a cookie should return 401."""
     response = await client.get(THEORY_LIST_URL)
     assert response.status_code == 401
 
 
-@pytest.mark.asyncio
+
 async def test_theory_list_returns_200(client, seeded_topics):
     """GET /theory when logged in should return 200."""
     await register_and_login(client)
@@ -81,7 +80,7 @@ async def test_theory_list_returns_200(client, seeded_topics):
     assert response.status_code == 200
 
 
-@pytest.mark.asyncio
+
 async def test_theory_list_shows_topic_titles(client, seeded_topics):
     """GET /theory should render each topic title on the page."""
     await register_and_login(client)
@@ -91,9 +90,9 @@ async def test_theory_list_shows_topic_titles(client, seeded_topics):
     assert "Sentence Structure" in response.text
 
 
-# ── Detail route ────────────────────────────────────────────────────────────────
+# -- Detail route -------------------------------------------------------------
 
-@pytest.mark.asyncio
+
 async def test_theory_detail_requires_auth(client, seeded_topics):
     """GET /theory/{id} without a cookie should return 401."""
     topic_id = seeded_topics[0].id
@@ -101,7 +100,7 @@ async def test_theory_detail_requires_auth(client, seeded_topics):
     assert response.status_code == 401
 
 
-@pytest.mark.asyncio
+
 async def test_theory_detail_returns_200(client, seeded_topics):
     """GET /theory/{id} when logged in should return 200."""
     await register_and_login(client)
@@ -110,7 +109,7 @@ async def test_theory_detail_returns_200(client, seeded_topics):
     assert response.status_code == 200
 
 
-@pytest.mark.asyncio
+
 async def test_theory_detail_shows_content(client, seeded_topics):
     """GET /theory/{id} should render the topic title and content."""
     await register_and_login(client)
@@ -120,7 +119,7 @@ async def test_theory_detail_shows_content(client, seeded_topics):
     assert "Present tense verb content here." in response.text
 
 
-@pytest.mark.asyncio
+
 async def test_theory_detail_404_for_unknown_id(client, seeded_topics):
     """GET /theory/9999 should return 404 when the topic does not exist."""
     await register_and_login(client)
@@ -128,9 +127,9 @@ async def test_theory_detail_404_for_unknown_id(client, seeded_topics):
     assert response.status_code == 404
 
 
-# ── Prev / Next navigation ───────────────────────────────────────────────────────
+# -- Prev / Next navigation ---------------------------------------------------
 
-@pytest.mark.asyncio
+
 async def test_theory_detail_first_topic_has_no_prev(client, seeded_topics):
     """The first topic should not render a Previous navigation link."""
     await register_and_login(client)
@@ -139,7 +138,7 @@ async def test_theory_detail_first_topic_has_no_prev(client, seeded_topics):
     assert "Previous" not in response.text
 
 
-@pytest.mark.asyncio
+
 async def test_theory_detail_last_topic_has_no_next(client, seeded_topics):
     """The last topic should not render a Next navigation link."""
     await register_and_login(client)
@@ -150,7 +149,7 @@ async def test_theory_detail_last_topic_has_no_next(client, seeded_topics):
     assert "Next &rarr;" not in response.text
 
 
-@pytest.mark.asyncio
+
 async def test_theory_detail_middle_topic_has_both_nav(client, seeded_topics):
     """A middle topic should render both Previous and Next navigation links."""
     await register_and_login(client)

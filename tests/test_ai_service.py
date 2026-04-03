@@ -7,7 +7,7 @@ from unittest.mock import patch, MagicMock
 from app.services.ai_service import generate_exercise, grade_answer
 
 
-# ── Helper ───────────────────────────────────────────────────────────────────
+# -- Helper -------------------------------------------------------------------
 
 def make_mock_response(content: dict) -> MagicMock:
     """Build a fake OpenAI chat completion response.
@@ -26,7 +26,7 @@ def make_mock_response(content: dict) -> MagicMock:
     )
 
 
-# ── generate_exercise() ───────────────────────────────────────────────────────
+# -- generate_exercise() ------------------------------------------------------
 
 def test_generate_exercise_returns_required_keys():
     """generate_exercise() must return sentence, blank_word, hint, explanation."""
@@ -77,7 +77,7 @@ def test_generate_exercise_invalid_json_raises():
             generate_exercise("Articles", "A1")
 
 
-# ── grade_answer() ────────────────────────────────────────────────────────────
+# -- grade_answer() -----------------------------------------------------------
 
 def test_grade_answer_returns_required_keys():
     """grade_answer() must return correct, score, and feedback."""
