@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Exercise — {{ topic.title }}{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="mb-6">
+  <a href="/theory/{{ topic.id }}"
+     class="text-sm text-gray-500 hover:text-gray-700 transition">&larr; Back to {{ topic.title }}</a>
+  <h1 class="text-2xl font-bold text-gray-900 mt-2">Fill in the Blank</h1>
+  <p class="text-sm text-gray-500 mt-1">Topic: {{ topic.title }} &middot; Level: {{ user.level }}</p>
+</div>
+
+<!-- Exercise card -->
+<div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm max-w-xl">
+
+  <!-- Sentence with blank -->
+  <p class="text-xl font-medium text-gray-800 mb-2">{{ exercise.sentence }}</p>
+
+  <!-- Hint -->
+  <p class="text-sm text-gray-500 mb-6">
+    <span class="font-medium text-gray-700">Hint:</span> {{ exercise.hint }}
+  </p>
+
+  <!-- Form — HTMX posts and swaps the response into #feedback without a page reload -->
+  <form hx-post="/exercises/check"
+        hx-target="#feedback"
+        hx-swap="innerHTML">
+
+    <!-- Hidden fields: the check route needs these to grade the answer -->
+    <input type="hidden" name="sentence"   value="{{ exercise.sentence }}">
+    <input type="hidden" name="blank_word" value="{{ exercise.blank_word }}">
+    <input type="hidden" name="topic_id"   value="{{ topic.id }}">
+
+    <div class="flex gap-2">
+      <input type="text"
+             name="user_answer"
+             autocomplete="off"
+             placeholder="Type your answer…"
+             class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm
+                    focus:outline-none focus:ring-2 focus:ring-black">
+      <button type="submit"
+              class="bg-black text-white px-5 py-2 rounded-lg text-sm
+                     hover:bg-gray-800 transition">
+        Check
+      </button>
+    </div>
+  </form>
+
+  <!-- HTMX swaps the feedback partial into this div after submission -->
+  <div id="feedback" class="mt-4"></div>
+
+</div>
+
+{% endblock %}
