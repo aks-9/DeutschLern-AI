@@ -1,9 +1,28 @@
 """Tests for theory routes: GET /theory and GET /theory/{topic_id}."""
 
+import pytest
 import pytest_asyncio
+from unittest.mock import patch
 
 from app.models import GrammarTopic
 from tests.conftest import TestSessionLocal
+
+FAKE_QUICK_CHECK = {
+    "question": "Which article goes with 'Mann'?",
+    "options": ["der", "die", "das", "den"],
+    "correct_index": 0,
+    "explanation": "'Mann' is masculine, so the article is 'der'.",
+}
+
+
+@pytest.fixture(autouse=True)
+def mock_quick_check():
+    """Patch generate_quick_check for all theory tests — no real API calls."""
+    with patch(
+        "app.routers.theory.generate_quick_check",
+        return_value=FAKE_QUICK_CHECK,
+    ):
+        yield
 
 THEORY_LIST_URL = "/theory"
 REGISTER_URL = "/auth/register"

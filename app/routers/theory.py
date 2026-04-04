@@ -8,6 +8,7 @@ from sqlalchemy.future import select
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models import GrammarTopic, User
+from app.services.ai_service import generate_quick_check
 
 
 router = APIRouter(prefix="/theory", tags=["theory"])
@@ -76,6 +77,8 @@ async def theory_detail(
         ids[current_pos + 1] if current_pos < len(ids) - 1 else None
     )
 
+    quick_check = generate_quick_check(topic.title, topic.level)
+
     return templates.TemplateResponse(
         request,
         "theory/detail.html",
@@ -84,5 +87,6 @@ async def theory_detail(
             "topic": topic,
             "prev_id": prev_id,
             "next_id": next_id,
+            "quick_check": quick_check,
         },
     )

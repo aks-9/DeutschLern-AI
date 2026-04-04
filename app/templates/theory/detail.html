@@ -27,6 +27,56 @@
   </a>
 </div>
 
+<!-- Quick-check widget -->
+<div class="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
+  <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
+    Quick Check
+  </h3>
+  <p class="text-gray-800 mb-4">{{ quick_check.question }}</p>
+
+  <form id="quick-check-form">
+    {% for option in quick_check.options %}
+    <label class="flex items-center gap-3 mb-3 cursor-pointer">
+      <input type="radio" name="qc_answer" value="{{ loop.index0 }}"
+             class="accent-black">
+      <span class="text-sm text-gray-700">{{ option }}</span>
+    </label>
+    {% endfor %}
+
+    <button type="button" onclick="checkQuickAnswer({{ quick_check.correct_index }}, '{{ quick_check.explanation }}')"
+            class="mt-4 bg-black text-white text-sm font-medium
+                   px-5 py-2 rounded hover:bg-gray-800 transition">
+      Check Answer
+    </button>
+  </form>
+
+  <div id="qc-feedback" class="mt-4 hidden text-sm rounded p-3"></div>
+</div>
+
+<script>
+function checkQuickAnswer(correctIndex, explanation) {
+  const selected = document.querySelector('input[name="qc_answer"]:checked');
+  const feedback = document.getElementById('qc-feedback');
+
+  if (!selected) {
+    feedback.textContent = 'Please select an answer first.';
+    feedback.className = 'mt-4 text-sm rounded p-3 bg-yellow-50 text-yellow-800';
+    feedback.classList.remove('hidden');
+    return;
+  }
+
+  const isCorrect = parseInt(selected.value) === correctIndex;
+  if (isCorrect) {
+    feedback.textContent = 'Correct! ' + explanation;
+    feedback.className = 'mt-4 text-sm rounded p-3 bg-green-50 text-green-800';
+  } else {
+    feedback.textContent = 'Not quite. ' + explanation;
+    feedback.className = 'mt-4 text-sm rounded p-3 bg-red-50 text-red-800';
+  }
+  feedback.classList.remove('hidden');
+}
+</script>
+
 <!-- Prev / Next navigation -->
 <div class="mt-6 flex justify-between">
   {% if prev_id %}
