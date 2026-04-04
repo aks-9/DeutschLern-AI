@@ -102,3 +102,45 @@ def grade_answer(
         raise ValueError(
             f"OpenAI returned invalid JSON: {e}"
         )
+
+
+def generate_quick_check(topic: str, level: str) -> dict:
+    """Generate a multiple-choice quick-check question for a grammar topic.
+
+    :param topic: The grammar topic title, e.g. 'German Articles'.
+    :param level: CEFR level string, e.g. 'A1'.
+    :raises ValueError: If the API response is not valid JSON.
+    :return: Dict with keys question, options (list of 4), correct_index, explanation.
+    """
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        response_format={"type": "json_object"},
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    f"You are a German language teacher creating "
+                    f"multiple-choice questions for CEFR {level} students. "
+                    f"Always respond with valid JSON only."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Create a multiple-choice quick-check question for "
+                    f"the grammar topic: '{topic}'.\n"
+                    f"Return JSON with exactly these fields:\n"
+                    f"- question: one clear question in English\n"
+                    f"- options: list of exactly 4 short answer strings\n"
+                    f"- correct_index: integer 0-3 pointing to the correct option\n"
+                    f"- explanation: one sentence explaining the correct answer"
+                ),
+            },
+        ],
+    )
+    try:
+        return json.loads(response.choices[0].message.content)
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"OpenAI returned invalid JSON: {e}"
+        )
