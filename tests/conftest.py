@@ -32,6 +32,13 @@ async def create_tables():
 
 
 @pytest_asyncio.fixture(autouse=True)
+async def clean_vocabulary():
+    """Delete all rows from vocabulary_entries before each test."""
+    async with test_engine.begin() as conn:
+        await conn.execute(text("DELETE FROM vocabulary_entries"))
+
+
+@pytest_asyncio.fixture(autouse=True)
 async def clean_users():
     """Delete all rows from the users table before each test."""
     async with test_engine.begin() as conn:
