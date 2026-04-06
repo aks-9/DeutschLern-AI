@@ -40,9 +40,14 @@ async def clean_vocabulary():
 
 @pytest_asyncio.fixture(autouse=True)
 async def clean_users():
-    """Delete all rows from the users table before each test."""
+    """Delete all rows from the users table before each test.
+
+    Uses TRUNCATE CASCADE so that child rows in vocabulary_entries,
+    coach_sessions, etc. are removed automatically, regardless of the
+    order in which autouse fixtures run.
+    """
     async with test_engine.begin() as conn:
-        await conn.execute(text("DELETE FROM users"))
+        await conn.execute(text("TRUNCATE users CASCADE"))
 
 @pytest_asyncio.fixture(autouse=True)
 async def clean_topics():
