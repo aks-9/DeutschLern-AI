@@ -7,6 +7,47 @@
   <p class="text-gray-500 mt-1">Your saved German words.</p>
 </div>
 
+<!-- Save a new word form -->
+<form method="post" action="/vocabulary/save"
+      class="bg-white border border-gray-200 rounded-lg p-5 mb-8">
+  <h2 class="text-base font-semibold text-gray-700 mb-4">Add a new word</h2>
+  <div class="flex flex-col sm:flex-row gap-3">
+
+    <!-- Word input -->
+    <input type="text" name="word" placeholder="German word (e.g. der Hund)"
+           required
+           class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm
+                  focus:outline-none focus:ring-2 focus:ring-blue-400" />
+
+    <!-- Meaning input -->
+    <input type="text" name="meaning" placeholder="English meaning (e.g. the dog)"
+           required
+           class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm
+                  focus:outline-none focus:ring-2 focus:ring-blue-400" />
+
+    <!-- Level selector -->
+    <select name="level"
+            class="border border-gray-300 rounded px-3 py-2 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <option value="A1">A1</option>
+      <option value="A2">A2</option>
+      <option value="B1">B1</option>
+    </select>
+
+    <!-- Submit button -->
+    <button type="submit"
+            class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium
+                   px-5 py-2 rounded transition">
+      Save
+    </button>
+
+  </div>
+  <p class="text-xs text-gray-400 mt-2">
+    An AI example sentence will be generated automatically.
+  </p>
+
+</form>
+
 {% if entries %}
   <div class="grid gap-4 sm:grid-cols-2">
     {% for entry in entries %}
