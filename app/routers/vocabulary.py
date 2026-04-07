@@ -1,6 +1,6 @@
 """Vocabulary routes: list, save, and delete user vocabulary entries."""
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -68,3 +68,24 @@ async def vocabulary_save(
     await db.commit()
 
     return RedirectResponse(url="/vocabulary", status_code=303)
+
+
+@router.delete("/{entry_id}")
+async def vocabulary_delete(
+    entry_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(VocabularyEntry).where(VocabularyEntry.id == entry_id)
+    )
+    entry = result.scalar_one_or_none()
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Word not found")
+
+    if entry.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not your word")
+
+    await db.delete(entry)
+    await db.commit()
+    return ""

@@ -206,8 +206,12 @@ async def test_delete_own_word_removes_it(client, seeded_vocab):
     response = await client.delete(f"/vocabulary/{entry_id}")
     assert response.status_code == 200
 
-    list_response = await client.get("/vocabulary")
-    assert "der Hund" not in list_response.text
+    # confirm the entry no longer exists in the database
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(VocabularyEntry).where(VocabularyEntry.id == entry_id)
+        )
+        assert result.scalar_one_or_none() is None
 
 
 async def test_delete_other_users_word_is_forbidden(client, seeded_vocab):
