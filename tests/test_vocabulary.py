@@ -1,6 +1,7 @@
-"""Tests for vocabulary routes: GET /vocabulary."""
+"""Tests for vocabulary routes: GET /vocabulary, POST /vocabulary/save."""
 
 import pytest_asyncio
+from unittest.mock import patch
 from sqlalchemy import select
 
 from app.models import User, VocabularyEntry
@@ -116,6 +117,58 @@ async def test_vocabulary_shows_word_and_meaning(client, seeded_vocab):
     assert "the dog" in response.text
     assert "die Katze" in response.text
     assert "the cat" in response.text
+
+
+# -- POST /vocabulary/save ----------------------------------------------------
+
+
+async def test_save_word_requires_auth(client):
+    """POST /vocabulary/save without a cookie must return 401."""
+    response = await client.post(
+        "/vocabulary/save", data={"word": "Hund", "meaning": "dog"}
+    )
+    assert response.status_code == 401
+
+
+async def test_save_word_redirects(client):
+    """POST /vocabulary/save with valid data must redirect to /vocabulary."""
+    await register_and_login(client)
+    # patch the AI call so no real OpenAI request is made during testing
+    with patch(
+        "app.routers.vocabulary.ai_service.generate_example_sentence",
+        return_value="Das Haus ist groß.",
+    ):
+        response = await client.post(
+            "/vocabulary/save",
+            data={"word": "das Haus", "meaning": "the house", "level": "A1"},
+        )
+    assert response.status_code in (200, 302, 303)
+
+
+async def test_save_word_appears_in_list(client):
+    """After saving a word, GET /vocabulary must render it."""
+    await register_and_login(client)
+    with patch(
+        "app.routers.vocabulary.ai_service.generate_example_sentence",
+        return_value="Das Haus ist groß.",
+    ):
+        await client.post(
+            "/vocabulary/save",
+            data={"word": "das Haus", "meaning": "the house", "level": "A1"},
+        )
+    response = await client.get("/vocabulary")
+    assert "das Haus" in response.text
+    assert "the house" in response.text
+
+
+async def test_save_word_missing_fields_returns_error(client):
+    """POST /vocabulary/save without required fields must return 422."""
+    await register_and_login(client)
+    response = await client.post("/vocabulary/save", data={})
+    assert response.status_code == 422
+
+
+# -- existing test below ------------------------------------------------------
 
 
 async def test_vocabulary_only_shows_own_words(client, seeded_vocab):
