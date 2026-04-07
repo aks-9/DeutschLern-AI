@@ -1,7 +1,7 @@
 """Vocabulary routes: list, save, and delete user vocabulary entries."""
 
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, Form, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -9,6 +9,7 @@ from sqlalchemy.future import select
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models import User, VocabularyEntry
+from app.services import ai_service
 
 router = APIRouter(prefix="/vocabulary", tags=["vocabulary"])
 templates = Jinja2Templates(directory="app/templates")
@@ -40,3 +41,30 @@ async def vocabulary_list(
         "vocabulary/list.html",
         {"user": current_user, "entries": entries},
     )
+
+
+@router.post("/save")
+async def vocabulary_save(
+    word: str = Form(...),
+    meaning: str = Form(...),
+    level: str = Form("A1"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Save a new vocabulary word for the logged-in user."""
+    try:
+        example = ai_service.generate_example_sentence(word, level)
+    except Exception:
+        example = None
+
+    entry = VocabularyEntry(
+        user_id=current_user.id,
+        word=word,
+        meaning=meaning,
+        level=level,
+        example_sentence=example,
+    )
+    db.add(entry)
+    await db.commit()
+
+    return RedirectResponse(url="/vocabulary", status_code=303)
