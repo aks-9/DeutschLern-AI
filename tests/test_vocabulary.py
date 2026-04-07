@@ -1,4 +1,4 @@
-"""Tests for vocabulary routes: GET /vocabulary, POST /vocabulary/save."""
+"""Tests for vocabulary routes: GET /vocabulary, POST /vocabulary/save, DELETE /vocabulary/{id}."""
 
 import pytest_asyncio
 from unittest.mock import patch
@@ -189,3 +189,37 @@ async def test_vocabulary_only_shows_own_words(client, seeded_vocab):
     # client is still logged in as VALID_USER
     response = await client.get("/vocabulary")
     assert "das Buch" not in response.text
+
+
+# -- DELETE /vocabulary/{id} --------------------------------------------------
+
+
+async def test_delete_word_requires_auth(client):
+    """DELETE /vocabulary/999 without a cookie must return 401."""
+    response = await client.delete("/vocabulary/999")
+    assert response.status_code == 401
+
+
+async def test_delete_own_word_removes_it(client, seeded_vocab):
+    """DELETE /vocabulary/{id} must remove the entry from the database."""
+    entry_id = seeded_vocab[0].id
+    response = await client.delete(f"/vocabulary/{entry_id}")
+    assert response.status_code == 200
+
+    list_response = await client.get("/vocabulary")
+    assert "der Hund" not in list_response.text
+
+
+async def test_delete_other_users_word_is_forbidden(client, seeded_vocab):
+    """DELETE /vocabulary/{id} must return 403 when the word belongs to another user."""
+    # register and log in as a different user
+    await client.post(REGISTER_URL, data=OTHER_USER)
+    await client.post(
+        LOGIN_URL,
+        data={"email": OTHER_USER["email"], "password": OTHER_USER["password"]},
+    )
+
+    # try to delete a word that belongs to VALID_USER
+    entry_id = seeded_vocab[0].id
+    response = await client.delete(f"/vocabulary/{entry_id}")
+    assert response.status_code == 403
