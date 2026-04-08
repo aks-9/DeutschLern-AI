@@ -20,7 +20,7 @@
 
 <!-- Practice button -->
 <div class="mt-6">
-  <a href="/exercises?topic_id={{ topic.id }}"
+  <a href="/exercises/{{ topic.id }}"
      class="inline-block bg-black text-white text-sm font-medium
             px-5 py-2.5 rounded hover:bg-gray-800 transition">
     Practice this topic &rarr;
@@ -43,7 +43,10 @@
     </label>
     {% endfor %}
 
-    <button type="button" onclick="checkQuickAnswer({{ quick_check.correct_index }}, '{{ quick_check.explanation }}')"
+    <button type="button"
+            data-correct="{{ quick_check.correct_index }}"
+            data-explanation="{{ quick_check.explanation | e }}"
+            onclick="checkQuickAnswer(this)"
             class="mt-4 bg-black text-white text-sm font-medium
                    px-5 py-2 rounded hover:bg-gray-800 transition">
       Check Answer
@@ -54,7 +57,9 @@
 </div>
 
 <script>
-function checkQuickAnswer(correctIndex, explanation) {
+function checkQuickAnswer(btn) {
+  const correctIndex = parseInt(btn.dataset.correct);
+  const explanation = btn.dataset.explanation;
   const selected = document.querySelector('input[name="qc_answer"]:checked');
   const feedback = document.getElementById('qc-feedback');
 

@@ -18,11 +18,11 @@
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
     <div class="bg-white border border-gray-200 rounded-lg p-4">
       <p class="text-xs text-gray-500 uppercase tracking-wide">Saved words</p>
-      <p class="text-3xl font-bold mt-1">0</p>
+      <p class="text-3xl font-bold mt-1">{{ word_count }}</p>
     </div>
     <div class="bg-white border border-gray-200 rounded-lg p-4">
       <p class="text-xs text-gray-500 uppercase tracking-wide">Exercises done</p>
-      <p class="text-3xl font-bold mt-1">0</p>
+      <p class="text-3xl font-bold mt-1">{{ exercises_done }}</p>
     </div>
     <div class="bg-white border border-gray-200 rounded-lg p-4">
       <p class="text-xs text-gray-500 uppercase tracking-wide">Coach sessions</p>
@@ -37,7 +37,7 @@
       <p class="font-semibold">Grammar Theory</p>
       <p class="text-sm text-gray-300 mt-1">Review A1 topics</p>
     </a>
-    <a href="/vocab"
+    <a href="/vocabulary"
        class="block bg-white border border-gray-200 rounded-lg p-5
               hover:border-gray-400 transition">
       <p class="font-semibold">Vocabulary</p>

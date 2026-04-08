@@ -8,7 +8,7 @@ from sqlalchemy.future import select
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models import GrammarTopic, User
+from app.models import GrammarTopic, User, Exercise, ExerciseAttempt
 from app.services.ai_service import generate_exercise, grade_answer
 
 router = APIRouter(prefix="/exercises", tags=["exercises"])
@@ -77,6 +77,15 @@ async def check_answer(
         user_answer=user_answer,
         level=current_user.level,
     )
+
+    attempt = ExerciseAttempt(
+        user_id=current_user.id,
+        user_answer=user_answer,
+        score=result.get("score", 0.0),
+        feedback=result.get("feedback", ""),
+    )
+    db.add(attempt)
+    await db.commit()
 
     return templates.TemplateResponse(
         request,

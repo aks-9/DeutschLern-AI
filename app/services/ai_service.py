@@ -91,7 +91,8 @@ def grade_answer(
                     f"Return JSON with exactly these fields:\n"
                     f"- correct: true or false\n"
                     f"- score: float between 0.0 and 1.0\n"
-                    f"- feedback: one encouraging sentence"
+                    f"- feedback: one encouraging sentence in German\n"
+                    f"- feedback_en: English translation of the feedback"
                 ),
             },
         ],
@@ -144,3 +145,34 @@ def generate_quick_check(topic: str, level: str) -> dict:
         raise ValueError(
             f"OpenAI returned invalid JSON: {e}"
         )
+
+
+def generate_example_sentence(word: str, level: str) -> str:
+    """Generate one natural German example sentence using the given word.
+
+    :param word: The German word or phrase to use in the sentence.
+    :param level: CEFR level string, e.g. 'A1'. Determines sentence complexity.
+    :return: A single German sentence as a plain string.
+    """
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        max_tokens=80, # limiting tokens to save cost as we just need 1 short sentence.
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    f"You are a German teacher for CEFR {level} learners. "
+                    f"Write natural, level-appropriate sentences."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Write ONE natural German example sentence using the word '{word}'. "
+                    f"The sentence must be appropriate for {level} level. "
+                    f"Reply with only the German sentence, nothing else."
+                ),
+            },
+        ],
+    )
+    return response.choices[0].message.content.strip() # strip() removes any trailing newline or a leading space from GPT response. Because we don't expect JSON but plain text.

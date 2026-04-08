@@ -34,14 +34,13 @@
       <option value="B1">B1</option>
     </select>
 
-    <!-- Submit button -->
-    <button type="submit"
-            class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium
-                   px-5 py-2 rounded transition">
-      Save
-    </button>
-
   </div>
+
+  <button type="submit"
+          class="bg-blue-600 hover:bg-blue-700 text-white text-sm
+                 font-medium px-6 py-2 rounded transition mt-3">
+    + Save Word
+  </button>
   <p class="text-xs text-gray-400 mt-2">
     An AI example sentence will be generated automatically.
   </p>
@@ -51,7 +50,7 @@
 {% if entries %}
   <div class="grid gap-4 sm:grid-cols-2">
     {% for entry in entries %}
-    <div class="bg-white border border-gray-200 rounded-lg p-5">
+    <div class="vocab-card bg-white border border-gray-200 rounded-lg p-5">
 
       <div class="flex items-start justify-between gap-2">
         <div>
@@ -65,9 +64,9 @@
           {% endif %}
           <button
             hx-delete="/vocabulary/{{ entry.id }}"
-            hx-target="closest div"
+            hx-target="closest .vocab-card"
             hx-swap="outerHTML"
-            class="text-xs text-red-400 hover:text-red-600 transition">
+            class="text-xs text-white bg-red-400 hover:bg-red-600 px-2 py-1 rounded transition">
             Delete
           </button>
         </div>

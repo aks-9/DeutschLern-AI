@@ -1,7 +1,7 @@
 """Vocabulary routes: list, save, and delete user vocabulary entries."""
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -88,4 +88,4 @@ async def vocabulary_delete(
 
     await db.delete(entry)
     await db.commit()
-    return ""
+    return Response(status_code=200)
