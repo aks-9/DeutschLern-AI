@@ -77,7 +77,10 @@ async def theory_detail(
         ids[current_pos + 1] if current_pos < len(ids) - 1 else None
     )
 
-    quick_check = generate_quick_check(topic.title, topic.level)
+    try:
+        quick_check = generate_quick_check(topic.title, topic.level)
+    except Exception:
+        quick_check = None
 
     return templates.TemplateResponse(
         request,
