@@ -176,3 +176,60 @@ def generate_example_sentence(word: str, level: str) -> str:
         ],
     )
     return response.choices[0].message.content.strip() # strip() removes any trailing newline or a leading space from GPT response. Because we don't expect JSON but plain text.
+
+
+# ── Conversation Coach ────────────────────────────────────────────────────────
+
+SCENARIO_PROMPTS = {
+    "free":        "The student wants a free conversation on any topic.",
+    "supermarket": "You are roleplaying: the student is shopping at a German supermarket (REWE). Help them navigate buying groceries, asking prices, and finding items.",
+    "train":       "You are roleplaying: the student is at Berlin Hauptbahnhof buying a train ticket. Help them with directions, platforms, and ticket vocabulary.",
+    "interview":   "You are roleplaying: the student is in a casual German job interview at a Berlin startup. Keep it simple and encouraging for their level.",
+}
+
+LEVEL_INSTRUCTIONS = {
+    "A1": "Use ONLY simple present tense. Maximum 2 short sentences per reply. After each reply, add an English translation in italics on a new line starting with '(Translation: ...)'",
+    "A2": "Use present tense and Perfekt past tense. 2-3 sentences per reply. Occasionally use modal verbs. No English translation needed.",
+    "B1": "Use varied grammar including subordinate clauses, Konjunktiv II where natural. 3-4 sentences per reply. Respond entirely in German.",
+}
+
+
+def build_coach_system_prompt(level: str, scenario: str) -> str:
+    """Build the system prompt for the AI coach based on user level and scenario.
+
+    :param level: CEFR level string, e.g. 'A1'.
+    :param scenario: Scenario key, e.g. 'free', 'supermarket', 'train', 'interview'.
+    :return: A fully formatted system prompt string ready to send to the API.
+    """
+    scenario_instruction = SCENARIO_PROMPTS.get(scenario, SCENARIO_PROMPTS["free"]) # falls back to "free" instead of crashing under unknown scenarios.
+    level_instruction    = LEVEL_INSTRUCTIONS.get(level, LEVEL_INSTRUCTIONS["A1"])
+
+    return f"""You are a friendly, encouraging German language coach for a CEFR {level} learner.
+
+SCENARIO: {scenario_instruction}
+
+LANGUAGE RULES FOR {level}:
+{level_instruction}
+
+CORRECTION RULE: If the student makes a grammar error, FIRST respond naturally to what they said, THEN on a new line add: " * Kleine Korrektur: '[their error]' → '[correction]' — [one-line explanation in English]"
+
+IMPORTANT: Always stay in character. Be warm, patient, and encouraging."""
+
+
+def get_coach_reply(history: list[dict], system_prompt: str) -> str:
+    """Call GPT-4o with the full conversation history and return the coach's reply.
+
+    :param history: List of {"role": ..., "content": ...} dicts, oldest first.
+    :param system_prompt: The personalised system prompt from build_coach_system_prompt().
+    :return: The coach's reply as a plain string.
+    """
+    messages = [{"role": "system", "content": system_prompt}] + history
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o", #using the full model for better conversation quality
+            max_tokens=400,
+            messages=messages,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception:
+        return "Entschuldigung, ich hatte ein technisches Problem. Bitte versuche es noch einmal. (Sorry, I had a technical problem. Please try again.)"
