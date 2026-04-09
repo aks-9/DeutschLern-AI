@@ -226,7 +226,7 @@ def get_coach_reply(history: list[dict], system_prompt: str) -> str:
     messages = [{"role": "system", "content": system_prompt}] + history
     try:
         response = client.chat.completions.create(
-            model="gpt-4o", #using the full model for better conversation quality
+            model="gpt-4o",
             max_tokens=400,
             messages=messages,
         )

@@ -55,11 +55,11 @@
   <div id="chat-box" class="flex flex-col gap-3 mb-4 min-h-[200px]">
     {% for msg in messages %}
       {% if msg.role == "assistant" %}
-        <div class="self-start bg-gray-100 text-gray-800 rounded-lg px-4 py-2 max-w-[80%] text-sm whitespace-pre-wrap">
+        <div class="self-start bg-gray-100 text-gray-800 rounded-lg px-4 py-2 max-w-[80%] w-fit text-sm whitespace-pre-wrap">
           {{ msg.content }}
         </div>
       {% else %}
-        <div class="self-end bg-blue-600 text-white rounded-lg px-4 py-2 max-w-[80%] text-sm whitespace-pre-wrap"> <!-- whitespace-pre-wrap preserves line breaks in AI replies -->
+        <div class="self-end bg-blue-600 text-white rounded-lg px-4 py-2 max-w-[80%] w-fit text-sm whitespace-pre-wrap"> <!-- whitespace-pre-wrap preserves line breaks in AI replies -->
           {{ msg.content }}
         </div>
       {% endif %}
