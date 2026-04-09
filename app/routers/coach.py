@@ -1,7 +1,7 @@
 """Coach routes: scenario selector, start session, send message."""
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -19,18 +19,61 @@ templates = Jinja2Templates(directory="app/templates")
 async def coach_home(
     request: Request,
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """Render the scenario selector page.
 
     :param request: The incoming FastAPI request.
     :param current_user: The authenticated user from the JWT cookie.
+    :param db: Async database session injected by FastAPI.
     :return: TemplateResponse rendering coach/chat.html with no active session.
     """
+    result = await db.execute(
+        select(CoachSession)
+        .where(CoachSession.user_id == current_user.id)
+        .order_by(CoachSession.started_at.desc())
+        .limit(5)
+    )
+    recent_sessions = result.scalars().all()
+
     return templates.TemplateResponse(
         request,
         "coach/chat.html",
-        {"user": current_user, "session_id": None, "messages": []},
+        {"user": current_user, "session_id": None, "messages": [], "recent_sessions": recent_sessions},
     ) # using session_id as a switch: if None → show scenario picker, if a number → show the chat
+
+
+@router.post("/{session_id}/delete", include_in_schema=False)
+async def delete_session(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a coach session and all its messages.
+
+    :param session_id: The CoachSession id from the URL.
+    :param current_user: The authenticated user from the JWT cookie.
+    :param db: Async database session injected by FastAPI.
+    :raises HTTPException: 404 if session not found or belongs to another user.
+    :return: Empty 200 response — HTMX removes the row from the UI.
+    """
+    result = await db.execute(
+        select(CoachSession).where(
+            CoachSession.id == session_id,
+            CoachSession.user_id == current_user.id,
+        )
+    )
+    coach_session = result.scalar_one_or_none()
+    if coach_session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
+
+    await db.execute(
+        CoachMessage.__table__.delete().where(CoachMessage.session_id == session_id)
+    )
+    await db.delete(coach_session)
+    await db.commit()
+
+    return Response(status_code=200)
 
 
 @router.post("/start", include_in_schema=False)
@@ -70,6 +113,54 @@ async def start_session(
             "session_id": session.id,
             "scenario": scenario,
             "messages": [{"role": "assistant", "content": opening}],
+        },
+    )
+
+
+@router.get("/{session_id}", include_in_schema=False)
+async def resume_session(
+    request: Request,
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Load an existing coach session and render the chat UI.
+
+    :param request: The incoming FastAPI request.
+    :param session_id: The CoachSession id from the URL.
+    :param current_user: The authenticated user from the JWT cookie.
+    :param db: Async database session injected by FastAPI.
+    :raises HTTPException: 404 if session not found or belongs to another user.
+    :return: TemplateResponse rendering coach/chat.html with full message history.
+    """
+    result = await db.execute(
+        select(CoachSession).where(
+            CoachSession.id == session_id,
+            CoachSession.user_id == current_user.id,
+        )
+    )
+    coach_session = result.scalar_one_or_none()
+    if coach_session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
+
+    result = await db.execute(
+        select(CoachMessage)
+        .where(CoachMessage.session_id == session_id)
+        .order_by(CoachMessage.id)
+    )
+    messages = [
+        {"role": m.role, "content": m.content}
+        for m in result.scalars().all()
+    ]
+
+    return templates.TemplateResponse(
+        request,
+        "coach/chat.html",
+        {
+            "user": current_user,
+            "session_id": session_id,
+            "scenario": coach_session.scenario,
+            "messages": messages,
         },
     )
 

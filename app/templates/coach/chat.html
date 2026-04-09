@@ -40,6 +40,38 @@
     </div>
   </form>
 </div>
+
+    <!-- the whole block is invisible for new users with no sessions yet -->
+{% if recent_sessions %}
+<div class="mt-6">
+  <h2 class="text-base font-semibold text-gray-700 mb-3">Resume a previous session</h2>
+  <div class="flex flex-col gap-2">
+    {% for s in recent_sessions %}
+    <div class="session-row flex items-center gap-2">
+      <a href="/coach/{{ s.id }}"
+         class="flex-1 flex items-center justify-between bg-white border border-gray-200
+                rounded-lg px-4 py-3 hover:border-blue-400 hover:bg-blue-50 transition">
+        <div>
+          <span class="text-sm font-medium text-gray-800">{{ s.scenario | title }}</span>
+          <span class="text-xs text-gray-400 ml-2">
+            {{ s.started_at.strftime("%d %b %Y, %H:%M") }}
+          </span>
+        </div>
+        <span class="text-xs text-blue-600 font-medium">Resume →</span>
+      </a>
+      <button
+        hx-post="/coach/{{ s.id }}/delete"
+        hx-target="closest .session-row"
+        hx-swap="outerHTML"
+        class="text-xs text-white bg-red-400 hover:bg-red-600 px-3 py-2 rounded transition shrink-0">
+        Delete
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 {% else %}
 <div class="bg-white border border-gray-200 rounded-lg p-6">
 

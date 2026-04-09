@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func
-from app.models import User, VocabularyEntry, ExerciseAttempt
+from app.models import User, VocabularyEntry, ExerciseAttempt, CoachSession
 from app.dependencies import get_current_user
 from app.database import get_db
 from fastapi.templating import Jinja2Templates
@@ -52,11 +52,26 @@ async def dashboard(
     )
     exercises_done = result.scalar()
 
+    result = await db.execute(
+        select(func.count()).where(CoachSession.user_id == current_user.id)
+    )
+    session_count = result.scalar()
+
+    result = await db.execute(
+        select(CoachSession.started_at)
+        .where(CoachSession.user_id == current_user.id)
+        .order_by(CoachSession.started_at.desc())
+        .limit(1)
+    )
+    last_session = result.scalar()
+
     return templates.TemplateResponse(
         request, "dashboard.html", {
             "user": current_user,
             "word_count": word_count,
             "exercises_done": exercises_done,
+            "session_count": session_count,
+            "last_session": last_session,
         }
     )
 
