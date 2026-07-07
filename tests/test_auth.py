@@ -49,6 +49,34 @@ async def test_register_duplicate_email_returns_400(client):
     assert response.status_code == 400
 
 
+
+async def test_register_invalid_email_returns_400(client):
+    """Registering with a malformed email should return 400."""
+    response = await register(
+        client,
+        data={
+            "username": "testuser",
+            "email": "not-an-email",
+            "password": "securepassword123",
+        },
+    )
+    assert response.status_code == 400
+
+
+
+async def test_register_short_password_returns_400(client):
+    """Registering with a password under 8 characters should return 400."""
+    response = await register(
+        client,
+        data={
+            "username": "testuser",
+            "email": "short@example.com",
+            "password": "short",
+        },
+    )
+    assert response.status_code == 400
+
+
 # -- Login --------------------------------------------------------------------
 
 

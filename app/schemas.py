@@ -1,14 +1,14 @@
 """Pydantic schemas for request and response validation."""
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserCreate(BaseModel):
     """Schema for user registration form data."""
 
     email: EmailStr
-    username: str
-    password: str
+    username: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=8)
 
 
 class UserRead(BaseModel):

@@ -7,6 +7,8 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from jose import jwt
 from passlib.context import CryptContext
+from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -61,12 +63,22 @@ async def register(
     :param email: Email address from the registration form.
     :param password: Plain-text password from the registration form.
     :param db: Async database session injected by FastAPI.
-    :raises HTTPException: 400 if the email is already registered.
+    :raises HTTPException: 400 if validation fails or email is already registered.
     :return: RedirectResponse to the login page on success.
     """
+    # Validate the form data through the Pydantic schema
+    try:
+        data = UserCreate(email=email, username=username, password=password)
+    except ValidationError as e:
+        first_error = e.errors()[0]
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{first_error['loc'][0]}: {first_error['msg']}",
+        )
+
     # Check for duplicate email
     result = await db.execute(
-        select(User).where(User.email == email)
+        select(User).where(User.email == data.email)
     )
     existing_user = result.scalars().first()
 
@@ -78,12 +90,20 @@ async def register(
 
     # Hash password and create user
     new_user = User(
-        email= email,
-        username= username,
-        password_hash=hash_password(password),
+        email=data.email,
+        username=data.username,
+        password_hash=hash_password(data.password),
     )
     db.add(new_user)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        # Duplicate email slipped past the check in a race — same 400 as above
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered.",
+        )
     await db.refresh(new_user)
 
     return RedirectResponse(
