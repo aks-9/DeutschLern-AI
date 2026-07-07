@@ -38,10 +38,8 @@
         hx-target="#feedback"
         hx-swap="innerHTML">
 
-    <!-- Hidden fields: the check route needs these to grade the answer -->
-    <input type="hidden" name="sentence"   value="{{ exercise.sentence }}">
-    <input type="hidden" name="blank_word" value="{{ exercise.blank_word }}">
-    <input type="hidden" name="topic_id"   value="{{ topic.id }}">
+    <!-- Only the exercise id is sent — the correct answer stays server-side -->
+    <input type="hidden" name="exercise_id" value="{{ exercise_id }}">
 
     <div class="flex gap-2">
       <input type="text"

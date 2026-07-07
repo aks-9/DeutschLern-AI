@@ -7,9 +7,13 @@ from seed import seed
 
 @pytest_asyncio.fixture(autouse=True)
 async def clean_topics():
-    """Delete all grammar_topics rows before each test."""
+    """Truncate grammar_topics before each test.
+
+    TRUNCATE CASCADE also removes child exercises rows left over from
+    other test modules, which a plain DELETE would trip over.
+    """
     async with TestSessionLocal() as session:
-        await session.execute(text("DELETE FROM grammar_topics"))
+        await session.execute(text("TRUNCATE grammar_topics CASCADE"))
         await session.commit()
 
 async def test_seed_inserts_six_topics():

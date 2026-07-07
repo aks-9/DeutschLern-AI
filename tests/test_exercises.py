@@ -2,8 +2,9 @@
 
 import pytest_asyncio
 from unittest.mock import patch
+from sqlalchemy import select
 
-from app.models import GrammarTopic
+from app.models import GrammarTopic, Exercise, ExerciseAttempt
 from tests.conftest import TestSessionLocal
 
 REGISTER_URL = "/auth/register"
@@ -52,6 +53,22 @@ async def seeded_topic():
         await session.commit()
         await session.refresh(topic) #forces SQLAlchemy to read the id back from the database so we can use topic.id in our URLs
     return topic
+
+
+@pytest_asyncio.fixture()
+async def seeded_exercise(seeded_topic):
+    """Insert one cached exercise row for the seeded topic and return it."""
+    exercise = Exercise(
+        topic_id=seeded_topic.id,
+        level="A1",
+        type="fill_blank",
+        question_data=FAKE_EXERCISE,
+    )
+    async with TestSessionLocal() as session:
+        session.add(exercise)
+        await session.commit()
+        await session.refresh(exercise)
+    return exercise
 
 
 # -- Helpers -------------------------------------------------------------------
@@ -133,26 +150,55 @@ async def test_exercise_page_survives_ai_failure(client, seeded_topic):
     assert "could not be generated" in response.text.lower()
 
 
+# -- Exercise persistence (GAPS #5) --------------------------------------------
+
+
+async def test_exercise_page_persists_exercise(client, seeded_topic):
+    """GET /exercises/{id} must save the generated exercise to the DB."""
+    await register_and_login(client)
+    with patch(
+        "app.routers.exercises.generate_exercise",
+        return_value=FAKE_EXERCISE,
+    ):
+        await client.get(f"/exercises/{seeded_topic.id}")
+
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(Exercise).where(Exercise.topic_id == seeded_topic.id)
+        )
+        exercises = result.scalars().all()
+    assert len(exercises) == 1
+    assert exercises[0].type == "fill_blank"
+    assert exercises[0].question_data["blank_word"] == "bin"
+
+
+async def test_exercise_page_does_not_leak_answer(client, seeded_topic):
+    """GET /exercises/{id} must not embed the correct answer in the HTML (GAPS #6)."""
+    await register_and_login(client)
+    with patch(
+        "app.routers.exercises.generate_exercise",
+        return_value=FAKE_EXERCISE,
+    ):
+        response = await client.get(f"/exercises/{seeded_topic.id}")
+    assert 'name="blank_word"' not in response.text
+    assert "bin" not in response.text  # the answer itself must not appear anywhere
+
+
 # -- POST /exercises/check ----------------------------------------------------
 
 
 
-async def test_check_requires_auth(client, seeded_topic):
+async def test_check_requires_auth(client, seeded_exercise):
     """POST /exercises/check without a cookie must return 401."""
     response = await client.post(
         "/exercises/check",
-        data={
-            "sentence": FAKE_EXERCISE["sentence"],
-            "blank_word": FAKE_EXERCISE["blank_word"],
-            "user_answer": "bin",
-            "topic_id": str(seeded_topic.id),
-        },
+        data={"exercise_id": str(seeded_exercise.id), "user_answer": "bin"},
     )
     assert response.status_code == 401
 
 
 
-async def test_check_correct_answer_shows_feedback(client, seeded_topic):
+async def test_check_correct_answer_shows_feedback(client, seeded_exercise):
     """POST /exercises/check with correct answer must return feedback HTML."""
     await register_and_login(client)
     with patch(
@@ -161,19 +207,14 @@ async def test_check_correct_answer_shows_feedback(client, seeded_topic):
     ):
         response = await client.post(
             "/exercises/check",
-            data={
-                "sentence": FAKE_EXERCISE["sentence"],
-                "blank_word": FAKE_EXERCISE["blank_word"],
-                "user_answer": "bin",
-                "topic_id": str(seeded_topic.id),
-            },
+            data={"exercise_id": str(seeded_exercise.id), "user_answer": "bin"},
         )
     assert response.status_code == 200
     assert "Perfekt!" in response.text
 
 
 
-async def test_check_wrong_answer_shows_feedback(client, seeded_topic):
+async def test_check_wrong_answer_shows_feedback(client, seeded_exercise):
     """POST /exercises/check with wrong answer must return feedback HTML."""
     await register_and_login(client)
     with patch(
@@ -182,12 +223,7 @@ async def test_check_wrong_answer_shows_feedback(client, seeded_topic):
     ):
         response = await client.post(
             "/exercises/check",
-            data={
-                "sentence": FAKE_EXERCISE["sentence"],
-                "blank_word": FAKE_EXERCISE["blank_word"],
-                "user_answer": "bist",
-                "topic_id": str(seeded_topic.id),
-            },
+            data={"exercise_id": str(seeded_exercise.id), "user_answer": "bist"},
         )
         #the data dictionary sends application/x-www-form-urlencoded, matching how HTML forms work and how our Form(...) params will receive the data.
 
@@ -196,7 +232,39 @@ async def test_check_wrong_answer_shows_feedback(client, seeded_topic):
 
 
 
-async def test_check_survives_ai_failure(client, seeded_topic):
+async def test_check_saves_attempt_with_exercise_id(client, seeded_exercise):
+    """POST /exercises/check must save an ExerciseAttempt linked to the exercise."""
+    await register_and_login(client)
+    with patch(
+        "app.routers.exercises.grade_answer",
+        return_value=FAKE_GRADE_CORRECT,
+    ):
+        await client.post(
+            "/exercises/check",
+            data={"exercise_id": str(seeded_exercise.id), "user_answer": "bin"},
+        )
+
+    async with TestSessionLocal() as session:
+        result = await session.execute(select(ExerciseAttempt))
+        attempts = result.scalars().all()
+    assert len(attempts) == 1
+    assert attempts[0].exercise_id == seeded_exercise.id
+    assert attempts[0].score == 1.0
+
+
+
+async def test_check_unknown_exercise_returns_404(client, seeded_topic):
+    """POST /exercises/check with a non-existent exercise_id must return 404."""
+    await register_and_login(client)
+    response = await client.post(
+        "/exercises/check",
+        data={"exercise_id": "99999", "user_answer": "bin"},
+    )
+    assert response.status_code == 404
+
+
+
+async def test_check_survives_ai_failure(client, seeded_exercise):
     """POST /exercises/check must return 200 with a retry message when grading fails."""
     await register_and_login(client)
     with patch(
@@ -205,12 +273,7 @@ async def test_check_survives_ai_failure(client, seeded_topic):
     ):
         response = await client.post(
             "/exercises/check",
-            data={
-                "sentence": FAKE_EXERCISE["sentence"],
-                "blank_word": FAKE_EXERCISE["blank_word"],
-                "user_answer": "bin",
-                "topic_id": str(seeded_topic.id),
-            },
+            data={"exercise_id": str(seeded_exercise.id), "user_answer": "bin"},
         )
     assert response.status_code == 200
     assert "could not be graded" in response.text.lower()

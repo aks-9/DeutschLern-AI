@@ -51,9 +51,14 @@ async def clean_users():
 
 @pytest_asyncio.fixture(autouse=True)
 async def clean_topics():
-    """Delete all rows from the grammar_topics table before each test."""
+    """Truncate grammar_topics before each test.
+
+    Uses TRUNCATE CASCADE so child rows in exercises (and their
+    exercise_attempts) are removed too, now that exercises are
+    persisted with a topic_id foreign key.
+    """
     async with test_engine.begin() as conn:
-        await conn.execute(text("DELETE FROM grammar_topics"))
+        await conn.execute(text("TRUNCATE grammar_topics CASCADE"))
 
 @pytest_asyncio.fixture()
 async def client():
