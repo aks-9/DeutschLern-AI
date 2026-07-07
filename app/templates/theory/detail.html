@@ -27,7 +27,8 @@
   </a>
 </div>
 
-<!-- Quick-check widget -->
+<!-- Quick-check widget — hidden entirely if the AI call failed (quick_check is None) -->
+{% if quick_check %}
 <div class="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
   <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
     Quick Check
@@ -81,6 +82,7 @@ function checkQuickAnswer(btn) {
   feedback.classList.remove('hidden');
 }
 </script>
+{% endif %}
 
 <!-- Prev / Next navigation -->
 <div class="mt-6 flex justify-between">

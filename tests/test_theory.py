@@ -146,6 +146,27 @@ async def test_theory_detail_404_for_unknown_id(client, seeded_topics):
     assert response.status_code == 404
 
 
+
+async def test_theory_detail_survives_quick_check_failure(client, seeded_topics):
+    """GET /theory/{id} must still return 200 when the quick-check AI call fails.
+
+    The route sets quick_check=None on failure; the template must not
+    crash iterating quick_check.options.
+    """
+    await register_and_login(client)
+    topic = seeded_topics[0]
+    # inner patch overrides the autouse success mock for this test only
+    with patch(
+        "app.routers.theory.generate_quick_check",
+        side_effect=Exception("OpenAI is down"),
+    ):
+        response = await client.get(f"/theory/{topic.id}")
+    assert response.status_code == 200
+    # page content still renders, quick-check widget is simply absent
+    assert "Der, Die, Das content here." in response.text
+    assert "Quick Check" not in response.text
+
+
 # -- Prev / Next navigation ---------------------------------------------------
 
 
