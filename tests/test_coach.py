@@ -179,3 +179,39 @@ async def test_message_invalid_session_returns_404(client):
         data={"session_id": 99999, "content": "Hallo"},
     )
     assert response.status_code == 404
+
+
+async def test_message_other_users_session_returns_404(client):
+    """POST /coach/message into another user's session must return 404."""
+    # User A creates a session
+    await register_and_login(client)
+    user_id = await get_user_id(VALID_USER["email"])
+    with patch("app.routers.coach.ai_service.get_coach_reply", return_value="Hallo!"):
+        await client.post("/coach/start", data={"scenario": "free"})
+
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(CoachSession).where(CoachSession.user_id == user_id)
+        )
+        session_id = result.scalar_one().id
+
+    # User B logs in and tries to post into user A's session
+    other_user = {
+        "username": "intruder",
+        "email": "intruder@example.com",
+        "password": "securepassword123",
+    }
+    await register_and_login(client, user=other_user)
+    response = await client.post(
+        "/coach/message",
+        data={"session_id": session_id, "content": "Hallo"},
+    )
+    assert response.status_code == 404
+
+    # No message must have been saved to user A's session
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(CoachMessage).where(CoachMessage.session_id == session_id)
+        )
+        messages = result.scalars().all()
+    assert len(messages) == 1  # only the opening assistant message

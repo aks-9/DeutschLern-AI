@@ -180,12 +180,15 @@ async def send_message(
     :param content: The user's message text.
     :param current_user: The authenticated user from the JWT cookie.
     :param db: Async database session injected by FastAPI.
-    :raises HTTPException: 404 if the session does not exist.
+    :raises HTTPException: 404 if session not found or belongs to another user.
     :return: HTMLResponse with two new chat bubbles (user + assistant).
     """
-    # 1. Load the session — 404 if it doesn't exist
+    # 1. Load the session — 404 if it doesn't exist or belongs to another user
     result = await db.execute(
-        select(CoachSession).where(CoachSession.id == session_id)
+        select(CoachSession).where(
+            CoachSession.id == session_id,
+            CoachSession.user_id == current_user.id,
+        )
     )
     coach_session = result.scalar_one_or_none()
     if coach_session is None:
