@@ -114,6 +114,28 @@ async def test_dashboard_requires_authentication(client):
 
 
 
+async def test_dashboard_redirects_browser_to_login(client):
+    """A browser page request (Accept: text/html) without a cookie should
+    redirect to the login page instead of showing raw JSON."""
+    response = await client.get(
+        DASHBOARD_URL, headers={"Accept": "text/html"}
+    )
+    assert response.status_code == 302
+    assert response.headers["location"] == "/auth/login"
+
+
+
+async def test_htmx_request_still_gets_401(client):
+    """An HTMX request must still receive 401, not a redirect — HTMX would
+    otherwise swap the login page HTML into the target element."""
+    response = await client.get(
+        DASHBOARD_URL,
+        headers={"Accept": "text/html", "HX-Request": "true"},
+    )
+    assert response.status_code == 401
+
+
+
 async def test_dashboard_accessible_when_logged_in(client):
     """Visiting /dashboard with a valid cookie should return 200."""
     await register_and_login(client)

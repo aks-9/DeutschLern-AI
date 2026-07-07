@@ -1,9 +1,11 @@
 from fastapi import FastAPI, Depends, Request
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.models import User, VocabularyEntry, ExerciseAttempt, CoachSession
 from app.dependencies import get_current_user
 from app.database import get_db
@@ -11,6 +13,27 @@ from fastapi.templating import Jinja2Templates
 from app.routers import auth, theory, exercises, vocabulary, coach
 
 app = FastAPI(title="DeutschLern AI")
+
+
+@app.exception_handler(StarletteHTTPException)
+async def redirect_unauthenticated_browsers(request: Request, exc: StarletteHTTPException):
+    """Send logged-out browser page requests to the login page.
+
+    A browser navigating to a protected page (Accept: text/html) gets a
+    302 to /auth/login instead of raw JSON. HTMX requests (HX-Request
+    header) and API clients still receive the normal 401 JSON response.
+
+    :param request: The incoming FastAPI request.
+    :param exc: The raised HTTPException.
+    :return: RedirectResponse to login, or the default JSON error response.
+    """
+    if (
+        exc.status_code == 401
+        and "text/html" in request.headers.get("accept", "")
+        and "hx-request" not in request.headers
+    ):
+        return RedirectResponse(url="/auth/login", status_code=302)
+    return await http_exception_handler(request, exc)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
