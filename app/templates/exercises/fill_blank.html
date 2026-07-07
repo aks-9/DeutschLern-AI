@@ -11,6 +11,17 @@
   <p class="text-sm text-gray-500 mt-1">Topic: {{ topic.title }} &middot; Level: {{ user.level }}</p>
 </div>
 
+{% if exercise is none %}
+<!-- AI failure fallback — shown when the exercise could not be generated -->
+<div class="bg-red-50 border border-red-200 rounded-xl p-6 max-w-xl text-sm text-red-800">
+  <p class="font-semibold mb-1">⚠️ The exercise could not be generated.</p>
+  <p>There was a problem reaching the AI service. Please try again in a moment.</p>
+  <a href="/exercises/{{ topic.id }}"
+     class="inline-block mt-3 text-red-700 underline hover:text-red-900 transition">
+    Try again &rarr;
+  </a>
+</div>
+{% else %}
 <!-- Exercise card -->
 <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm max-w-xl">
 
@@ -51,5 +62,6 @@
   <div id="feedback" class="mt-4"></div>
 
 </div>
+{% endif %}
 
 {% endblock %}

@@ -120,6 +120,19 @@ async def test_exercise_page_shows_hint(client, seeded_topic):
     assert "verb to be, first person" in response.text
 
 
+
+async def test_exercise_page_survives_ai_failure(client, seeded_topic):
+    """GET /exercises/{id} must return 200 with an error message when the AI call fails."""
+    await register_and_login(client)
+    with patch(
+        "app.routers.exercises.generate_exercise",
+        side_effect=Exception("OpenAI is down"),
+    ):
+        response = await client.get(f"/exercises/{seeded_topic.id}")
+    assert response.status_code == 200
+    assert "could not be generated" in response.text.lower()
+
+
 # -- POST /exercises/check ----------------------------------------------------
 
 
@@ -180,3 +193,24 @@ async def test_check_wrong_answer_shows_feedback(client, seeded_topic):
 
     assert response.status_code == 200
     assert "Not quite" in response.text
+
+
+
+async def test_check_survives_ai_failure(client, seeded_topic):
+    """POST /exercises/check must return 200 with a retry message when grading fails."""
+    await register_and_login(client)
+    with patch(
+        "app.routers.exercises.grade_answer",
+        side_effect=Exception("OpenAI is down"),
+    ):
+        response = await client.post(
+            "/exercises/check",
+            data={
+                "sentence": FAKE_EXERCISE["sentence"],
+                "blank_word": FAKE_EXERCISE["blank_word"],
+                "user_answer": "bin",
+                "topic_id": str(seeded_topic.id),
+            },
+        )
+    assert response.status_code == 200
+    assert "could not be graded" in response.text.lower()

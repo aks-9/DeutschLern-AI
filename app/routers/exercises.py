@@ -41,7 +41,10 @@ async def exercise_page(
             detail="Topic not found.",
         )
 
-    exercise = generate_exercise(topic.title, current_user.level)
+    try:
+        exercise = generate_exercise(topic.title, current_user.level)
+    except Exception:
+        exercise = None  # template shows an error card instead of the exercise
 
     return templates.TemplateResponse(
         request,
@@ -71,12 +74,20 @@ async def check_answer(
     :param current_user: The authenticated user from the JWT cookie.
     :return: TemplateResponse rendering exercises/partials/feedback.html.
     """
-    result = grade_answer(
-        sentence=sentence,
-        blank_word=blank_word,
-        user_answer=user_answer,
-        level=current_user.level,
-    )
+    try:
+        result = grade_answer(
+            sentence=sentence,
+            blank_word=blank_word,
+            user_answer=user_answer,
+            level=current_user.level,
+        )
+    except Exception:
+        # Grading failed — show a retry message, save no attempt
+        return templates.TemplateResponse(
+            request,
+            "exercises/partials/feedback.html",
+            {"result": None, "blank_word": blank_word, "topic_id": topic_id},
+        )
 
     attempt = ExerciseAttempt(
         user_id=current_user.id,
